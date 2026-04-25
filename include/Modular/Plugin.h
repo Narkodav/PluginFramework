@@ -5,8 +5,8 @@
 namespace Modular {
     class Plugin {
     public:
-        using CreateFn = Modular_PluginApi* (*)();
-        using DestroyFn = void (*)(Modular_PluginApi*);
+        using CreateFn = Modular_PluginInterface* (*)();
+        using DestroyFn = void (*)(Modular_PluginInterface*);
     private:
         Library m_lib;
         PluginInterface m_instance = nullptr;
@@ -16,7 +16,7 @@ namespace Modular {
     public:
 
         Plugin() = default;
-        explicit Plugin(std::string_view path, Modular_OnLoadHostApi* host) { load(path, host); };
+        explicit Plugin(std::string_view path, Modular_OnLoadHostInterface* host) { load(path, host); };
         explicit Plugin(std::string_view path, OnLoadHost& host) { load(path, host); };
 
         ~Plugin() { unload(); }
@@ -50,7 +50,7 @@ namespace Modular {
             return *this;
         }
 
-        bool load(std::filesystem::path path, Modular_OnLoadHostApi* host) {
+        bool load(std::filesystem::path path, Modular_OnLoadHostInterface* host) {
             if (!m_lib.load(path)) return false;
 
             m_create = m_lib.getSymbol<CreateFn>("Modular_createPlugin");

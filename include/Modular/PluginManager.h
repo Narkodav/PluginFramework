@@ -4,12 +4,13 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
+#include <iostream>
 
 namespace Modular {
     class PluginManager {
     private:
         std::vector<Plugin> m_plugins;
-        Modular_OnLoadHostApi* m_hostOnLoad = nullptr;
+        Modular_OnLoadHostInterface* m_hostOnLoad = nullptr;
 
     public:
 
@@ -21,11 +22,20 @@ namespace Modular {
             return true;
         }
 
+        void loadPluginsInDirectory(std::filesystem::path dir) {
+            for(auto const& dirEntry : std::filesystem::directory_iterator{dir}) {
+                auto file = dirEntry.path();
+                if(file.extension() == Library::getPlatformExtension()) {
+                    if(!loadPlugin(file)) throw std::runtime_error("Plugin failed to load: " + file.string());
+                }
+            }
+        }
+
         void shutdownAll() {
             m_plugins.clear();
         }
 
-        void setHost(Modular_OnLoadHostApi* hostOnLoad) {
+        void setHost(Modular_OnLoadHostInterface* hostOnLoad) {
             m_hostOnLoad = hostOnLoad;
         }
     };

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string_view>
 
 #if defined(_WIN32)
     #if defined(MODULAR_PLUGIN_IMPLEMENTATION)
@@ -11,54 +12,56 @@
     #define MODULAR_PLUGIN_API
 #endif
 
+typedef uint64_t Modular_ServiceId;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
     // Implemented by host
-    struct Modular_RuntimeHostApi {
-        void* (*getService)(void* self, uint64_t id);
+    struct Modular_RuntimeHostInterface {
+        void* (*getService)(void* self, Modular_ServiceId id);
         void (*log)(void* self, const char* message);
         void* self;
     };
 
     // Can only register services on load
-    struct Modular_OnLoadHostApi {
-        bool (*registerService)(void* self, uint64_t id, void* ptr);
+    struct Modular_OnLoadHostInterface {
+        bool (*registerService)(void* self, Modular_ServiceId id, void* ptr);
         void (*log)(void* self, const char* message);
         void* self;
     };
 
-    struct Modular_HostApi {
-        void*(*getService)(void* self, uint64_t id);
-        bool (*registerService)(void* self, uint64_t id, void* ptr);
+    struct Modular_HostInterface {
+        void*(*getService)(void* self, Modular_ServiceId id);
+        bool (*registerService)(void* self, Modular_ServiceId id, void* ptr);
         void (*log)(void* self, const char* message);
         void* self;
     };
 
-    struct Modular_PluginApi {
+    struct Modular_PluginInterface {
         const char* (*name)(void* self);
         uint64_t (*version)(void* self);
-        void (*onLoad)(void* self, Modular_OnLoadHostApi* host);
+        void (*onLoad)(void* self, Modular_OnLoadHostInterface* host);
         void (*onUnload)(void* self);
         void* self;
     };
 
     // Implemented by plugin
-    MODULAR_PLUGIN_API Modular_PluginApi* Modular_createPlugin();
-    MODULAR_PLUGIN_API void Modular_destroyPlugin(Modular_PluginApi*);
+    MODULAR_PLUGIN_API Modular_PluginInterface* Modular_createPlugin();
+    MODULAR_PLUGIN_API void Modular_destroyPlugin(Modular_PluginInterface*);
 #ifdef __cplusplus
 }
 #endif
 
 #define MODULAR_DEFINE_PLUGIN(create_fn, destroy_fn) \
 extern "C" { \
-    MODULAR_PLUGIN_API Modular_PluginApi* Modular_createPlugin() { return create_fn(); } \
-    MODULAR_PLUGIN_API void Modular_destroyPlugin(Modular_PluginApi* p) { destroy_fn(p); } \
+    MODULAR_PLUGIN_API Modular_PluginInterface* Modular_createPlugin() { return create_fn(); } \
+    MODULAR_PLUGIN_API void Modular_destroyPlugin(Modular_PluginInterface* p) { destroy_fn(p); } \
 }
 
 #ifdef __cplusplus
 namespace Modular {
-    using OnLoadFn = void (*)(void* self, Modular_OnLoadHostApi* host);
+    using OnLoadFn = void (*)(void* self, Modular_OnLoadHostInterface* host);
     using OnUnloadFn = void (*)(void* self);
     using NameFn = const char* (*)(void* self);
     using VersionFn = uint64_t (*)(void* self);
@@ -67,70 +70,72 @@ namespace Modular {
     using RegisterServiceFn = bool (*)(void* self, uint64_t id, void* ptr);
     using LogFn = void (*)(void* self, const char* message);
 
+    using ServiceId = Modular_ServiceId;
+
 
     class RuntimeHost {
     private:
-        Modular_RuntimeHostApi* m_api;
+        Modular_RuntimeHostInterface* m_api;
     public:
-        RuntimeHost(Modular_RuntimeHostApi* api)
+        RuntimeHost(Modular_RuntimeHostInterface* api)
             : m_api(api) {}
 
         void log(const char* msg) {
             m_api->log(m_api->self, msg);
         }
 
-        void* getService(uint64_t id) {
+        void* getService(ServiceId id) {
             return m_api->getService(m_api->self, id);
         }
 
-        Modular_RuntimeHostApi* getApi() { return m_api; }
+        Modular_RuntimeHostInterface* getApi() { return m_api; }
     };
 
     class OnLoadHost {
     private:
-        Modular_OnLoadHostApi* m_api;
+        Modular_OnLoadHostInterface* m_api;
     public:
-        OnLoadHost(Modular_OnLoadHostApi* api)
+        OnLoadHost(Modular_OnLoadHostInterface* api)
             : m_api(api) {}
 
         void log(const char* msg) {
             m_api->log(m_api->self, msg);
         }
 
-        bool registerService(uint64_t id, void* ptr) {
+        bool registerService(ServiceId id, void* ptr) {
             return m_api->registerService(m_api->self, id, ptr);
         }
 
-        Modular_OnLoadHostApi* getApi() { return m_api; }
+        Modular_OnLoadHostInterface* getApi() { return m_api; }
     };
 
     class HostInterface {
     private:
-        Modular_HostApi* m_api;
+        Modular_HostInterface* m_api;
     public:
-        HostInterface(Modular_HostApi* api) : m_api(api) {}
+        HostInterface(Modular_HostInterface* api) : m_api(api) {}
 
         void log(const char* msg) {
             m_api->log(m_api->self, msg);
         }
 
-        bool registerService(uint64_t id, void* ptr) {
+        bool registerService(ServiceId id, void* ptr) {
             return m_api->registerService(m_api->self, id, ptr);
         }
 
-        void* getService(uint64_t id) {
+        void* getService(ServiceId id) {
             return m_api->getService(m_api->self, id);
         }
 
-        Modular_HostApi* getApi() { return m_api; }
+        Modular_HostInterface* getApi() { return m_api; }
     };
 
     class PluginInterface {
     private:
-        Modular_PluginApi* m_api;
+        Modular_PluginInterface* m_api;
     public:
-        PluginInterface(Modular_PluginApi* api) : m_api(api) {}
-        PluginInterface& operator=(Modular_PluginApi* api) { m_api = api; return *this; }
+        PluginInterface(Modular_PluginInterface* api) : m_api(api) {}
+        PluginInterface& operator=(Modular_PluginInterface* api) { m_api = api; return *this; }
 
         const char* name() const {
             return m_api->name(m_api->self);
@@ -140,7 +145,7 @@ namespace Modular {
             return m_api->version(m_api->self);
         }
 
-        void onLoad(Modular_OnLoadHostApi* host) {
+        void onLoad(Modular_OnLoadHostInterface* host) {
             m_api->onLoad(m_api->self, host);
         }
 
@@ -152,8 +157,8 @@ namespace Modular {
             m_api->onUnload(m_api->self);
         }
 
-        Modular_PluginApi* getApi() { return m_api; }
-        const Modular_PluginApi* getApi() const { return m_api; }
+        Modular_PluginInterface* getApi() { return m_api; }
+        const Modular_PluginInterface* getApi() const { return m_api; }
     };
 
     namespace Detail {
@@ -181,19 +186,84 @@ namespace Modular {
         };
     }
 
+    constexpr ServiceId serviceNameToId(std::string_view name) {
+        return Detail::fnv1a(name);
+    }
+
     template<typename T>
     struct ServiceTraits;
 
     template<Detail::FixedString str>
     struct ServiceTraitBase {
         static constexpr std::string_view s_name = str;
-        static constexpr uint64_t s_id = Detail::fnv1a(s_name);
+        static constexpr ServiceId s_id = serviceNameToId(s_name);
     };
 
-    // Example specialisation
+    // Example specialisation, only valid for unique services, doesnt work for interfaces
     // template<>
     // struct ServiceTraits<TestServiceApi> : ServiceTraitBase<"TestService"> {};
 
+    template<typename Derived>
+    struct ModuleBase {
+    protected:
+        template <auto Method>
+        static constexpr auto bind() {
+            return [](void* self, auto... args) -> decltype(auto) {
+                return (reinterpret_cast<Derived*>(self)->*Method)(args...);
+            };
+        }
+    };
+
+    template<typename Derived, Detail::FixedString nameTem, typename ServiceInterface>
+    struct ServiceApiBase : public ModuleBase<Derived> {
+    protected:
+        static inline const std::string_view s_name = nameTem;
+        static inline const Modular_ServiceId s_id = Modular::serviceNameToId(s_name);
+
+        ServiceInterface m_interface;
+    public:
+
+        const char* name() { return s_name.data();  }
+        Modular_ServiceId id() { return s_id; }
+        ServiceInterface* interface() { return &m_interface; }
+    };
+
+    template<Detail::FixedString nameTem, typename... ServiceApis>
+    struct PluginApiBase : public ModuleBase<PluginApiBase<nameTem, ServiceApis...>> {
+    protected:
+        static inline const std::string_view s_name = nameTem;
+
+        Modular_PluginInterface m_interface;
+        std::tuple<ServiceApis...> m_apis;
+
+    public:
+
+        PluginApiBase() {
+            m_interface.name = this->template bind<&PluginApiBase::name>();
+            m_interface.version = this->template bind<&PluginApiBase::version>();
+            m_interface.onLoad = this->template bind<&PluginApiBase::onLoad>();
+            m_interface.onUnload = this->template bind<&PluginApiBase::onUnload>();
+            m_interface.self = this;
+        };
+
+        const char* name() { return s_name.data(); }
+
+        virtual uint64_t version() = 0;
+
+        virtual void onLoad(Modular_OnLoadHostInterface* host) {
+            std::apply([host](auto&&... apis) {
+                (host->registerService(host->self, apis.id(), apis.interface()), ...);
+            }, m_apis);
+            onLoadImpl(host);
+        }
+
+        virtual void onUnload() = 0;
+
+        Modular_PluginInterface* interface() { return &m_interface; }
+
+    protected:
+        virtual void onLoadImpl(Modular_OnLoadHostInterface* host) = 0;
+    };
 }
 
 #define MODULAR_DEFINE_SERVICE(Type, name)                                      \

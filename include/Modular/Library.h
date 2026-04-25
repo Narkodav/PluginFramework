@@ -43,7 +43,7 @@ namespace Modular {
             return reinterpret_cast<T>(getSymbolRaw(name));
         }
 
-        std::string_view getPlatformExtension() {
+        static std::string_view getPlatformExtension() {
             return s_platformExtension;
         }
     };

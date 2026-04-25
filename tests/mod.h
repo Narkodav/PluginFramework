@@ -33,7 +33,7 @@ private:
     static inline const std::string s_name = "TestPlugin";
     static inline const uint64_t s_version = 1;
 
-    Modular_PluginApi m_api;
+    Modular_PluginInterface m_api;
     TestService m_testService;
 public:
 
@@ -63,11 +63,11 @@ public:
     }
 
 
-    static void onLoadStatic(void* self, Modular_OnLoadHostApi* host) { 
+    static void onLoadStatic(void* self, Modular_OnLoadHostInterface* host) { 
         return getSelf(self)->onLoad(host);
     }
 
-    void onLoad(Modular_OnLoadHostApi* host) {
+    void onLoad(Modular_OnLoadHostInterface* host) {
         host->registerService(host->self, Modular::ServiceTraits<TestServiceApi>::s_id, m_testService.getApiPointer());
         std::cout << s_name << " loaded" << std::endl; 
     }
@@ -78,7 +78,7 @@ public:
 
     void onUnload() const { std::cout << s_name << " unloaded" << std::endl; }
 
-    Modular_PluginApi* getApiPointer() { return &m_api; }
+    Modular_PluginInterface* getApiPointer() { return &m_api; }
 
 private:
 

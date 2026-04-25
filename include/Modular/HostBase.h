@@ -6,35 +6,11 @@
 
 namespace Modular {
     class HostBase {
-        struct TransparentHash {
-            using is_transparent = void;
-
-            size_t operator()(std::string_view sv) const noexcept {
-                return std::hash<std::string_view>{}(sv);
-            }
-
-            size_t operator()(const std::string& s) const noexcept {
-                return std::hash<std::string_view>{}(s);
-            }
-
-            size_t operator()(const char* s) const noexcept {
-                return std::hash<std::string_view>{}(s);
-            }
-        };
-
-        struct TransparentEqual {
-            using is_transparent = void;
-
-            bool operator()(std::string_view lhs,
-                            std::string_view rhs) const noexcept {
-                return lhs == rhs;
-            }
-        };
     protected:
         std::unordered_map<uint64_t, void*> m_services;
-        Modular_HostApi m_hostApi;
-        Modular_OnLoadHostApi m_onLoadHostApi;
-        Modular_RuntimeHostApi m_runtimeHostApi;
+        Modular_HostInterface m_hostApi;
+        Modular_OnLoadHostInterface m_onLoadHostApi;
+        Modular_RuntimeHostInterface m_runtimeHostApi;
 
     public:
 
@@ -80,15 +56,15 @@ namespace Modular {
             return reinterpret_cast<HostBase*>(self)->getService<void*>(id);
         }
 
-        Modular_HostApi* getInterface() {
+        Modular_HostInterface* getInterface() {
             return &m_hostApi;
         }
 
-        Modular_OnLoadHostApi* getInterfaceOnLoad() {
+        Modular_OnLoadHostInterface* getInterfaceOnLoad() {
             return &m_onLoadHostApi;
         }
 
-        Modular_RuntimeHostApi* getInterfaceRuntime() {
+        Modular_RuntimeHostInterface* getInterfaceRuntime() {
             return &m_runtimeHostApi;
         }
     };
